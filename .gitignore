@@ -17,3 +17,5 @@ communication/src/.DS_Store
 communication/src/edu/cmu/cmulib/communication/.DS_Store
 
 *.iml
+
+*.xml
