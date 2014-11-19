@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.LinkedList;
+import java.util.Scanner;
 
 import edu.cmu.cmulib.communication.CommonPacket;
 
@@ -27,38 +28,81 @@ public class Slave {
 	}
 	
 	public static void main (String[] args) throws IOException {
-		double[] test = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16};
-		int rows = 4;
-		int cols = 4;
+        
+        // initialize original matrix
+		/*double[] test = {6,8,9,6,2,9,7,7,8,5,8,7,4,8,6,8,5,4,7,3,5,9,8,6,9,6,7,8,6,6,6,8};
+		int rows = 8;
+		int cols = 4;*/
+
+        /******************1000 by 1000 test*****************/
+        Scanner scan = new Scanner(new File("svd.data"));
+        String line;
+        double[] test = new double[1000*1000];
+        for (int i = 0; i < 1000*1000; i++)
+            line = scan.nextLine();
+            test[i] = Double.parseDouble(line.trim());
+        }
+        scan.close();
+        int rows = 1000;
+        int cols = 1000;
+        /**********************Over*************************/
+
 		LinkedList<Double[]> mList = new LinkedList<Double[]>();
-        /*
+        LinkedList<Tag> tagList = new LinkedList<Tag>();
+        
 		Mat score = new Mat(rows, cols ,test);
-		Tag tag;
-		Mat S, L;
-        */
+        Mat S, L;
+        
 
         String address = InetAddress.getLocalHost().getHostAddress();
         int port = 8000;
-
-        SlaveMiddleWare sdSlave = new SlaveMiddleWare();
+        SlaveMiddleWare sdSlave = new SlaveMiddleWare(address, port);
         sdSlave.register(Double[].class, mList);
+        sdSlave.register(Tag.class, tagList);
         System.out.println(address + " " + port);
-        sdSlave.startSlave(address, port);
+        sdSlave.startSlave();
 
-        /*
+        
 		Slave_getSplitedMatrix split = new Slave_getSplitedMatrix(score);
 		Slave_SVD svd = new Slave_SVD();
-		
-		tag = commu.pullTag();
-		split.setTag(tag);
-		S = split.construct();
-//		svd.setS(S);
-		L = commu.pullL();
-		svd.setL(L);
-		L = svd.Slave_UpdateL(S);
-		commu.push(L);
-		*/
 
+        // update L using equation L=SS(trans)L
+        while(true){
+            //receive tag and compute L
+            synchronized (tagList) {
+                if (tagList.size() > 0) {
+                    split.setTag(tagList.peek());
+                    tagList.remove();
+                    S = split.construct();
+                    L = svd.Slave_UpdateL(S);
+                    printArray(L.data);
+                    sendMat(L,sdSlave);
+
+                }
+            }
+            //receive L
+            synchronized (mList) {
+                if (mList.size() > 0) {
+                    System.out.println("enter slave synchronized");
+                    L = getMat(mList);
+                    svd.setL(L);
+
+                    
+                }
+            }
+            
+        }
+//		tag = commu.pullTag();
+//		split.setTag(tag);
+//		S = split.construct();
+//		svd.setS(S);
+//		L = commu.pullL();
+//		svd.setL(L);
+//		L = svd.Slave_UpdateL(S);
+//		commu.push(L);
+		
+
+        /*
         while(true){
         	synchronized (mList) {
                 if (mList.size() > 0) {
@@ -71,6 +115,7 @@ public class Slave {
             }
 
         }
+        */
 	}
 	
 	
